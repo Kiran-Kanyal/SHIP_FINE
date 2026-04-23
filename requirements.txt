@@ -1,0 +1,7 @@
+GitPython
+ollama
+rich
+flask
+docker
+flask
+flask_cors

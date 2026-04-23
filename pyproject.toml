@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai_deploy_system"
+version = "0.1.0"
+dependencies = [
+    "flask", 
+    "GitPython",
+    "ollama",
+    "rich"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]  # Tells setuptools to look for packages starting from the root

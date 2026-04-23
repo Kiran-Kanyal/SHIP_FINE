@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Deploy | Control Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@300;400;500&family=Orbitron:wght@400;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Intel+One+Mono:ital,wght@0,300..700;1,300..700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Space+Grotesk:wght@300..700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+
+  <body>
+    <!-- Particle canvas background -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Scan line overlay -->
+    <div class="scanlines"></div>
+
+    <!-- Vignette -->
+    <div class="vignette"></div>
+
+    <!-- ── AI DIAGNOSIS OVERLAY + PANEL ── -->
+    <div class="diag-overlay" id="diagOverlay" onclick="closeDiagPanel()"></div>
+
+    <div class="diag-panel" id="diagPanel">
+      <div class="diag-panel-scanline"></div>
+
+      <!-- Header -->
+      <div class="diag-header">
+        <div class="diag-header-left">
+          <div class="diag-icon-wrap">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              <line x1="11" y1="8" x2="11" y2="14" />
+              <line x1="11" y1="16" x2="11.01" y2="16" />
+            </svg>
+          </div>
+          <div class="diag-title-block">
+            <span class="diag-label">AI POWERED</span>
+            <span class="diag-title">Build Diagnosis</span>
+          </div>
+        </div>
+        <button
+          class="diag-close"
+          onclick="closeDiagPanel()"
+          aria-label="Close"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="diag-body" id="diagBody">
+        <!-- Status banner -->
+        <div class="diag-status-banner">
+          <div class="diag-status-icon"></div>
+          <div>
+            <div class="diag-status-text">DEPLOYMENT FAILED</div>
+            <div class="diag-status-sub" id="diagTimestamp">
+              Analyzing build errors…
+            </div>
+          </div>
+        </div>
+
+        <!-- Root cause -->
+        <div>
+          <div class="diag-section-label">
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            Root Cause
+          </div>
+          <div class="diag-root-cause" id="diagRootCause">
+            Analyzing build output…
+          </div>
+        </div>
+
+        <!-- Error log -->
+        <div id="diagLogSection">
+          <div class="diag-section-label">
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <polyline points="4 17 10 11 4 5" />
+              <line x1="12" y1="19" x2="20" y2="19" />
+            </svg>
+            Error Output
+          </div>
+          <div class="diag-log-block" id="diagErrorLog">—</div>
+        </div>
+
+        <!-- Fix steps -->
+        <div>
+          <div class="diag-section-label">
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+            >
+              <polyline points="9 11 12 14 22 4" />
+              <path
+                d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+              />
+            </svg>
+            Recommended Fixes
+          </div>
+          <div class="diag-steps" id="diagSteps">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="diag-footer">
+        <div class="diag-footer-note">
+          Diagnosis powered by<br />autonomous AI pipeline engine
+        </div>
+        <button
+          class="diag-retry-btn"
+          onclick="
+            closeDiagPanel();
+            analyzeRepo();
+          "
+        >
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+          >
+            <polyline points="23 4 23 10 17 10" />
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+          </svg>
+          RETRY DEPLOY
+        </button>
+      </div>
+    </div>
+
+    <div class="page-wrapper">
+      <section class="hero">
+        <div class="hero-eyebrow">
+          <span class="eyebrow-line"></span>
+          <span class="eyebrow-text">Ship-Fine</span>
+          <span class="eyebrow-line"></span>
+        </div>
+        <h1 class="hero-title">
+          <span class="title-line">Debug Smarter</span>
+          <span class="title-line title-accent">Deploy Faster</span>
+        </h1>
+        <p class="hero-sub">
+          Automated build & deploy pipeline. <br />
+          Drop your fantastic repo here.
+        </p>
+      </section>
+
+      <main class="deploy-card">
+        <!-- Glowing corner accents -->
+        <span class="corner tl"></span>
+        <span class="corner tr"></span>
+        <span class="corner bl"></span>
+        <span class="corner br"></span>
+
+        <!-- Card header strip -->
+        <div class="card-topbar">
+          <div class="card-dots">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-yellow"></span>
+            <span class="dot dot-green"></span>
+          </div>
+          <span class="card-title-label"> deploy_console.sh</span>
+          <div class="card-badge">
+            <span class="badge-pulse"></span>
+            READY
+          </div>
+        </div>
+
+        <!-- Input row -->
+        <div class="input-section">
+          <div class="input-label-row">
+            <span class="input-label">TARGET REPOSITORY</span>
+            <span class="input-hint">git · github</span>
+          </div>
+          <div class="input-wrap" id="inputWrap">
+            <div class="input-icon">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"
+                />
+              </svg>
+            </div>
+            <input
+              type="text"
+              id="repoInput"
+              placeholder="https://github.com/username/repository"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button id="analyzeBtn" onclick="analyzeRepo()">
+              <span id="btnText">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+                Deploy
+              </span>
+              <div class="btn-shimmer"></div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="stats-row">
+          <div class="stat-item">
+            <span class="stat-val">2.4s</span>
+            <span class="stat-key">AVG BUILD</span>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="stat-item">
+            <span class="stat-val">SHIP FINE</span>
+          </div>
+          <div class="stat-sep"></div>
+          <div class="stat-item">
+            <span class="stat-val">AI</span>
+            <span class="stat-key">DIAGNOSIS</span>
+          </div>
+        </div>
+
+        <!-- Terminal -->
+        <div id="terminal" class="terminal hidden">
+          <div class="terminal-header">
+            <div class="terminal-title">
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="4 17 10 11 4 5" />
+                <line x1="12" y1="19" x2="20" y2="19" />
+              </svg>
+              pipeline_status.log
+            </div>
+            <div id="terminalStatus" class="terminal-status-badge">
+              <span class="status-spin"></span>
+              RUNNING
+            </div>
+          </div>
+          <div class="terminal-body">
+            <pre id="output"></pre>
+            <div class="cursor-line" id="cursorLine">
+              <span class="term-cursor">▋</span>
+            </div>
+          </div>
+          <div class="terminal-footer">
+            <span id="termProgress" class="term-progress-label"
+              >Initializing...</span
+            >
+            <div class="term-progress-track">
+              <div class="term-progress-fill" id="progressFill"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action area: success OR failure -->
+        <div id="actionArea" class="action-area hidden">
+          <!-- ── SUCCESS STATE ── -->
+          <div id="successState" class="hidden">
+            <div class="deploy-success-badge">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              Deployment Successful
+            </div>
+            <a id="liveLink" href="#" target="_blank" class="live-btn">
+              <span>View Live Application</span>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
+                />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+            </a>
+          </div>
+
+          <!-- ── FAILURE STATE ── -->
+          <div id="failureState" class="hidden failure-mode action-area">
+            <div class="failure-left">
+              <div class="deploy-fail-badge">
+                <span class="fail-badge-dot"></span>
+                DEPLOYMENT FAILED
+              </div>
+              <span class="failure-hint">AI has analyzed the build errors</span>
+            </div>
+            <div class="failure-btns">
+              <!-- Full diagnosis link — href set automatically by MutationObserver -->
+              <a
+                id="diagLink"
+                href="#"
+                target="_blank"
+                class="live-btn diag-live-btn"
+              >
+                <span>Full Diagnosis</span>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
+                  />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
+              </a>
+              <button class="diag-trigger-btn" onclick="openDiagPanel()">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  <line x1="11" y1="8" x2="11" y2="14" />
+                  <line x1="11" y1="16" x2="11.01" y2="16" />
+                </svg>
+                AI DIAGNOSIS
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- ── FOOTER ── -->
+      <footer class="site-footer">
+        <span>© 2025 Ship Fine Inc.</span>
+        <span class="footer-sep">·</span>
+        <span>Powered by Autonomous Intelligence</span>
+      </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+
+    <script>
+      /* ── Particle background ── */
+      const canvas = document.getElementById("bg-canvas");
+      const ctx = canvas.getContext("2d");
+      let W,
+        H,
+        particles = [];
+
+      function resize() {
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+      }
+
+      class Particle {
+        constructor() {
+          this.reset(true);
+        }
+        reset(init) {
+          this.x = Math.random() * W;
+          this.y = init ? Math.random() * H : H + 10;
+          this.size = Math.random() * 1.2 + 0.3;
+          this.speed = Math.random() * 0.4 + 0.1;
+          this.opacity = Math.random() * 0.5 + 0.1;
+          this.color =
+            Math.random() > 0.6
+              ? "#00d4ff"
+              : Math.random() > 0.5
+                ? "#00ff9f"
+                : "#ffffff";
+        }
+        update() {
+          this.y -= this.speed;
+          if (this.y < -10) this.reset(false);
+        }
+        draw() {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fillStyle = this.color;
+          ctx.globalAlpha = this.opacity;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      function initParticles() {
+        particles = Array.from({ length: 120 }, () => new Particle());
+      }
+      function animateParticles() {
+        ctx.clearRect(0, 0, W, H);
+        particles.forEach((p) => {
+          p.update();
+          p.draw();
+        });
+        requestAnimationFrame(animateParticles);
+      }
+
+      resize();
+      initParticles();
+      animateParticles();
+      window.addEventListener("resize", () => {
+        resize();
+        initParticles();
+      });
+
+      /* ── Input interactions ── */
+      const input = document.getElementById("repoInput");
+      const wrap = document.getElementById("inputWrap");
+      input.addEventListener("focus", () => wrap.classList.add("focused"));
+      input.addEventListener("blur", () => wrap.classList.remove("focused"));
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") analyzeRepo();
+      });
+
+      /* ── Keyboard shortcut: Escape to close panel ── */
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeDiagPanel();
+      });
+
+      window._diagData = null;
+
+      window.showDeploymentSuccess = function (url) {
+        const area = document.getElementById("actionArea");
+        const success = document.getElementById("successState");
+        const failure = document.getElementById("failureState");
+        document.getElementById("liveLink").href = url;
+        area.classList.remove("hidden");
+        success.classList.remove("hidden");
+        failure.classList.add("hidden");
+      };
+
+      window.showDeploymentFailure = function (data) {
+        window._diagData = data;
+        const area = document.getElementById("actionArea");
+        const success = document.getElementById("successState");
+        const failure = document.getElementById("failureState");
+        area.classList.remove("hidden");
+        failure.classList.remove("hidden");
+        success.classList.add("hidden");
+      };
+
+      function openDiagPanel() {
+        const overlay = document.getElementById("diagOverlay");
+        const panel = document.getElementById("diagPanel");
+
+        /* Populate content */
+        const diagData = window._diagData;
+
+        if (diagData) {
+          document.getElementById("diagRootCause").textContent =
+            diagData.rootCause || "Unknown error.";
+          document.getElementById("diagErrorLog").textContent =
+            diagData.errorLog || "—";
+          document.getElementById("diagTimestamp").textContent =
+            "Detected at " +
+            new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            });
+
+          const stepsEl = document.getElementById("diagSteps");
+          stepsEl.innerHTML = "";
+          (diagData.steps || []).forEach((s, i) => {
+            const el = document.createElement("div");
+            el.className = "diag-step";
+            el.innerHTML = `
+              <div class="step-num">${i + 1}</div>
+              <div class="step-content">
+                <div class="step-title">${escHtml(s.title)}</div>
+                <div class="step-desc">${escHtml(s.desc)}</div>
+                ${s.code ? `<div class="step-code">${escHtml(s.code)}</div>` : ""}
+              </div>`;
+            stepsEl.appendChild(el);
+            /* stagger the step animations */
+            setTimeout(() => el.classList.add("visible"), 80 + i * 90);
+          });
+        }
+
+        overlay.classList.add("open");
+        panel.classList.add("open");
+        document.body.style.overflow = "hidden";
+      }
+
+      function closeDiagPanel() {
+        document.getElementById("diagOverlay").classList.remove("open");
+        document.getElementById("diagPanel").classList.remove("open");
+        document.body.style.overflow = "";
+      }
+
+      function escHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      window.showDiagDemo = function () {
+        window.showDeploymentFailure({
+          rootCause:
+            'npm error Missing script: "start". The package.json does not define a start script, so the container has no entrypoint to launch the application.',
+          errorLog: `npm error Missing script: "start"
+npm error
+npm error Did you mean one of these?
+npm error   npm star  # Mark your favorite packages
+npm error   npm stars # View packages marked as favorites
+npm error
+npm error To see a list of scripts, run:
+npm error   npm run
+npm error A complete log of this run can be found in:
+npm error     /root/.npm/_logs/2025-01-15T10_23_44_312Z-debug-0.log`,
+          steps: [
+            {
+              title: 'Add a "start" script to package.json',
+              desc: 'Open your package.json and add a start entry under "scripts". This tells npm how to launch your app.',
+              code: '"scripts": {\n  "start": "node index.js"\n}',
+            },
+            {
+              title: "Verify your entry file exists",
+              desc: "Make sure the file referenced in the start script (e.g. index.js or server.js) actually exists in your repository root.",
+            },
+            {
+              title: "Install missing dependencies",
+              desc: "Run npm install locally and commit the updated package-lock.json so the build can resolve all modules.",
+              code: 'npm install && git add package-lock.json && git commit -m "fix: lock file"',
+            },
+            {
+              title: "Re-deploy the repository",
+              desc: "Once the start script is defined, hit Retry Deploy — the pipeline will automatically rebuild the Docker image and launch the container.",
+            },
+          ],
+        });
+      };
+    </script>
+  </body>
+</html>
